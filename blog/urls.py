@@ -3,6 +3,8 @@ from blog import views
 
 urlpatterns = [
     url('^signup$', views.signup, name='signup'),
+    url('^signin$', views.signin, name='signin'),
+    url('^signout$', views.signout, name='signout'),
     url('^token$', views.token, name='token'),
     url('^article$', views.articleList, name='articleList'),
     url('^article/(?P<article_id>[0-9]+)$', views.articleDetail, name='articleDetail'),
