@@ -1,6 +1,7 @@
 from django.http import HttpResponse, HttpResponseNotAllowed
 from django.http import JsonResponse, HttpResponseNotFound
 from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.forms.models import model_to_dict
 from .models import Article, User, Comment
@@ -24,6 +25,21 @@ def token(request):
         return HttpResponse(status=204)
     else:
         return HttpResponseNotAllowed(['GET'])
+
+
+def signin(request):
+    username = request.POST['username']
+    password = request.POST['password']
+    user = authenticate(request, username=username, password=password)
+    if user is not None:
+        login(request, user)
+        return HttpResponse(status=200)
+    else:
+        return HttpResponse(status=401)
+
+
+def signout(request):
+    logout(request)
 
 
 def articleList(request):
@@ -76,7 +92,7 @@ def commentList(request, article_id):
     article_id = int(article_id)
     if request.method == 'GET':
         try:
-            comments = Article.objects.get(id=article_id).comments.all() #type of comments? QuerySet? List?
+            comments = Article.objects.get(id=article_id).comments.all().values() #type of comments? QuerySet? List?
             print(type(comments))
         except Comment.DoesNotExist:
             return HttpResponseNotFound()
