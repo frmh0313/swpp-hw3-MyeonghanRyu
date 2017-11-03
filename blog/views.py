@@ -112,6 +112,7 @@ def articleDetail(request, article_id):
     else:
         return HttpResponseNotAllowed(['GET', 'PUT', 'DELETE'])
 
+
 @login_required
 def commentList(request, article_id):
     article_id = int(article_id)

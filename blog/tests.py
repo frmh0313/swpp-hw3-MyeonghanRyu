@@ -1,5 +1,4 @@
 from django.test import TestCase, Client
-from django.http import HttpResponseNotAllowed
 from .models import User, Article, Comment
 from .views import login_required
 import json
@@ -79,11 +78,11 @@ class BlogTestCase(TestCase):
 
     def test_article_list_put(self):
         response = self.client.put('/api/article', data=[])
-        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.status_code, 405)  # Not allowed
 
     def test_article_list_delete(self):
         response = self.client.delete('/api/article', data=[])
-        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.status_code, 405)  # Not allowed
 
     def test_article_list_get_not_found(self):
         response = self.client.get('/api/article/5')
@@ -126,7 +125,7 @@ class BlogTestCase(TestCase):
                                        {'author_id': 1, 'content': 'fake article1',
                                         'id': 1, 'title': 'article1 post'}),
                                     content_type='application/json')
-        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.status_code, 405)  # Not allowed
 
     def test_article_detail_delete_authorized(self):
         response = self.client.delete('/api/article/1')
@@ -158,11 +157,11 @@ class BlogTestCase(TestCase):
         response = self.client.put('/api/article/1/comment',
                                    json.dumps({'content': 'comment5', 'author_id':1, 'article_id': 1}),
                                    content_type='application/json')
-        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.status_code, 405)  # Not allowed
 
     def test_comment_list_delete(self):
         response = self.client.delete('/api/article/1/comment')
-        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.status_code, 405)  # Not allowed
 
     def test_comment_detail_get(self):
         response = self.client.get('/api/comment/1')
@@ -209,7 +208,7 @@ class BlogTestCase(TestCase):
         response = self.client.post('/api/comment/4',
                                     json.dumps({'content': 'comment4', 'author_id':1, 'article_id': 1}),
                                     content_type='application/json')
-        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.status_code, 405)  # Not allowed
 
     def test_signin_post_valid_user(self):
         username = 'User1'
@@ -227,11 +226,11 @@ class BlogTestCase(TestCase):
                                     content_type='application/json')
         self.assertEqual(response.status_code, 401)
 
-    def test_signin_get_not_allowed(self):
+    def test_signin_get(self):
         response = self.client.get('/api/signin')
         self.assertEqual(response.status_code, 405)
 
-    def test_signin_put_not_allowed(self):
+    def test_signin_put(self):
         username = 'User1'
         password = 'user1pwd'
         response = self.client.put('/api/signin',
@@ -239,7 +238,7 @@ class BlogTestCase(TestCase):
                                    content_type='application/json')
         self.assertEqual(response.status_code, 405)
 
-    def test_signin_delete_not_allowed(self):
+    def test_signin_delete(self):
         response = self.client.delete('/api/signin')
         self.assertEqual(response.status_code, 405)
 
@@ -249,14 +248,18 @@ class BlogTestCase(TestCase):
                                     content_type='application/json')
         self.assertEqual(response.status_code, 200)
 
-    def test_signout_get_not_allowed(self):
+    def test_signout_get(self):
         response = self.client.get('/api/signout')
         self.assertEqual(response.status_code, 405)
 
-    def test_signout_put_not_allowed(self):
+    def test_signout_put(self):
         response = self.client.put('/api/signout',
                                    json.dumps({'username': 'User1', 'password':'user1pwd'}),
                                               content_type='application/json')
+        self.assertEqual(response.status_code, 405)
+
+    def test_signout_delete(self):
+        response = self.client.put('/api/signout')
         self.assertEqual(response.status_code, 405)
 
     def test_login_required_logined(self):
@@ -269,10 +272,3 @@ class BlogTestCase(TestCase):
             return True
         User.is_authenticated = False
         self.assertEqual(login_required(is_logined()).status_code, 405)
-
-
-
-
-
-
-
