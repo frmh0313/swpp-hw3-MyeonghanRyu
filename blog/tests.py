@@ -21,7 +21,7 @@ class BlogTestCase(TestCase):
     def setUp(self):
         User.objects.create(username='User1', password='user1pwd')
         User.objects.create(username='User2', password='user2pwd')
-        User.objects.create(username='User3', passwords='user3pwd')
+        User.objects.create(username='User3', password='user3pwd')
 
         Article.objects.create(title='article1', content='article1 content', author=User.objects.get(id=1))
         Article.objects.create(title='article2', content='article2 content', author=User.objects.get(id=1))
@@ -33,7 +33,7 @@ class BlogTestCase(TestCase):
 
         self.client = Client()
 
-    def article_list_get(self):
+    def test_article_list_get(self):
         response = self.client.get('/api/article')
         loaded_data = json.loads(response.content.decode())
         data = [{'author_id': 1, 'content': 'article1 content', 'id': 1, 'title': 'article1'},
@@ -42,19 +42,18 @@ class BlogTestCase(TestCase):
         self.assertEqual(loaded_data, data)
         self.assertEqual(response.status_code, 200)
 
-    def article_list_post(self):
+    def test_article_list_post(self):
         response = self.client.post('/api/article',
                                     data=[{'author_id': 2, 'content': 'testing article', 'title': 'testing'}])
         self.assertEqual(response.status_code, 201)
 
-    def article_list_put(self):
+    def test_article_list_put(self):
         response = self.client.put('/api/article', data=[])
         self.assertEqual(response, HttpResponseNotAllowed(['GET', 'POST']))
 
-    def article_list_delete(self):
+    def test_article_list_delete(self):
         response = self.client.delete('/api/article', data=[])
         self.assertEqual(response, HttpResponseNotAllowed(['GET', 'POST']))
-
 
 
 
