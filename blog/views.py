@@ -2,6 +2,7 @@ from django.http import HttpResponse, HttpResponseNotAllowed
 from django.http import JsonResponse, HttpResponseNotFound
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.forms.models import model_to_dict
 from .models import Article, User, Comment
@@ -28,20 +29,29 @@ def token(request):
 
 
 def signin(request):
-    username = request.POST['username']
-    password = request.POST['password']
-    user = authenticate(request, username=username, password=password)
-    if user is not None:
-        login(request, user)
-        return HttpResponse(status=200)
+    if request.method == 'POST':
+        request_data = json.loads(request.body.decode())
+        username = request_data['username']
+        password = request_data['password']
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return HttpResponse(status=200)
+        else:
+            return HttpResponse(status=401)
     else:
-        return HttpResponse(status=401)
+        return HttpResponseNotAllowed(['POST'])
 
 
 def signout(request):
-    logout(request)
+    if request.method == 'POST':
+        logout(request)
+        return HttpResponse(status=200)
+    else:
+        return HttpResponseNotAllowed(['POST'])
 
 
+@login_required
 def articleList(request):
     if request.method == 'GET':
         return JsonResponse(list(Article.objects.all().values()), safe=False)
@@ -68,22 +78,30 @@ def articleDetail(request, article_id):
         title = json.loads(request.body.decode())['title']
         content = json.loads(request.body.decode())['content']
         author_id = json.loads(request.body.decode())['author_id']
-        try:
-            article = Article.objects.get(id=article_id)
-        except Article.DoesNotExist:
-            return HttpResponseNotFound()
-        article.title = title
-        article.content = content
-        article.author_id = author_id
-        article.save()
-        return HttpResponse(status=204)
+
+        if author_id == User.objects.get(username=request.user.get_username()).id:
+            try:
+                article = Article.objects.get(id=article_id)
+            except Article.DoesNotExist:
+                return HttpResponseNotFound()
+            article.title = title
+            article.content = content
+            article.author_id = author_id
+            article.save()
+            return HttpResponse(status=200)
+        else:
+            return HttpResponse(status=401) #Unauthorized
+
     elif request.method == 'DELETE':
         try:
             article = Article.objects.get(id=article_id)
         except Article.DoesNotExist:
             return HttpResponseNotFound()
-        article.delete()
-        return HttpResponse(status=204)
+        if article.author_id == User.objects.get(username=request.user.get_username()).id:
+            article.delete()
+            return HttpResponse(status=200)
+        else:
+            return HttpResponse(status=401) #Unauthorized
     else:
         return HttpResponseNotAllowed(['GET', 'PUT', 'DELETE'])
 
@@ -91,11 +109,7 @@ def articleDetail(request, article_id):
 def commentList(request, article_id):
     article_id = int(article_id)
     if request.method == 'GET':
-        try:
-            comments = Article.objects.get(id=article_id).comments.all().values() #type of comments? QuerySet? List?
-            print(type(comments))
-        except Comment.DoesNotExist:
-            return HttpResponseNotFound()
+        comments = Article.objects.get(id=article_id).comments.all().values() #type of comments? QuerySet? List?
         return JsonResponse(list(comments), safe=False)
     elif request.method == 'POST':
         content = json.loads(request.body.decode())['content']
@@ -120,28 +134,28 @@ def commentDetail(request, comment_id):
         # article_id = json.loads(request.body.decode())['article_id']
         content = json.loads(request.body.decode())['content']
         author_id = json.loads(request.body.decode())['author_id']
-        try:
-            comment = Comment.objects.get(id=comment_id)
-        except Comment.DoesNotExist:
-            return HttpResponseNotFound()
-        # comment.article_id = article_id # article modifying not allowed
-        comment.content = content
-        # comment.author_id = author_id # author_id modifying not allowed
-        comment.save()
-        return HttpResponse(status=204)
+        if author_id == User.objects.get(username=request.user.get_username()).id:
+            try:
+                comment = Comment.objects.get(id=comment_id)
+            except Comment.DoesNotExist:
+                return HttpResponseNotFound()
+            # comment.article_id = article_id # article modifying not allowed
+            comment.content = content
+            # comment.author_id = author_id # author_id modifying not allowed
+            comment.save()
+            return HttpResponse(status=200)
+        else:
+            return HttpResponse(status=401) # Unauthorized
     elif request.method == 'DELETE':
-        try:
-            comment = Comment.objects.get(id=comment_id)
-        except Comment.DoesNotExist:
-            return HttpResponseNotFound()
-        comment.delete()
-        return HttpResponse(status=204)
+        author_id = json.loads(request.body.decode())['author_id']
+        if author_id == User.objects.get(username=request.user.get_username()).id:
+            try:
+                comment = Comment.objects.get(id=comment_id)
+            except Comment.DoesNotExist:
+                return HttpResponseNotFound()
+            comment.delete()
+            return HttpResponse(status=200)
+        else:
+            return HttpResponse(status=401) # Unauthorized
     else:
         return HttpResponseNotAllowed(['GET', 'PUT', 'DELETE'])
-
-
-
-
-
-
-
