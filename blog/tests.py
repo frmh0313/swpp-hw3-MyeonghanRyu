@@ -1,4 +1,6 @@
 from django.test import TestCase, Client
+from django.http import HttpResponseNotAllowed
+from .models import User, Article, Comment
 import json
 
 
@@ -15,3 +17,47 @@ class BlogTestCase(TestCase):
 
         response = client.post('/api/signup', json.dumps({'username': 'chris', 'password': 'chris'}), content_type='application/json', HTTP_X_CSRFTOKEN=csrftoken)
         self.assertEqual(response.status_code, 201) # Pass csrf protection
+
+    def setUp(self):
+        User.objects.create(username='User1', password='user1pwd')
+        User.objects.create(username='User2', password='user2pwd')
+        User.objects.create(username='User3', passwords='user3pwd')
+
+        Article.objects.create(title='article1', content='article1 content', author=User.objects.get(id=1))
+        Article.objects.create(title='article2', content='article2 content', author=User.objects.get(id=1))
+        Comment.objects.create(content='comment1', author=User.objects.get(id=2), article=Article.objects.get(id=1))
+        Comment.objects.create(content='comment2', author=User.objects.get(id=1), article=Article.objects.get(id=1))
+        Comment.objects.create(content='comment3', author=User.objects.get(id=3), article=Article.objects.get(id=2))
+
+        Article.objects.create(title='article3', content='article3 content', author=User.objects.get(id=2))
+
+        self.client = Client()
+
+    def article_list_get(self):
+        response = self.client.get('/api/article')
+        loaded_data = json.loads(response.content.decode())
+        data = [{'author_id': 1, 'content': 'article1 content', 'id': 1, 'title': 'article1'},
+                {'author_id': 1, 'content': 'article2 content', 'id': 2, 'title': 'article2'},
+                {'author_id': 2, 'content': 'article3 content', 'id': 3, 'title': 'article3'}]
+        self.assertEqual(loaded_data, data)
+        self.assertEqual(response.status_code, 200)
+
+    def article_list_post(self):
+        response = self.client.post('/api/article',
+                                    data=[{'author_id': 2, 'content': 'testing article', 'title': 'testing'}])
+        self.assertEqual(response.status_code, 201)
+
+    def article_list_put(self):
+        response = self.client.put('/api/article', data=[])
+        self.assertEqual(response, HttpResponseNotAllowed(['GET', 'POST']))
+
+    def article_list_delete(self):
+        response = self.client.delete('/api/article', data=[])
+        self.assertEqual(response, HttpResponseNotAllowed(['GET', 'POST']))
+
+
+
+
+
+
+
