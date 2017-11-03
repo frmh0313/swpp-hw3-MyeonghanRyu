@@ -2,7 +2,6 @@ from django.http import HttpResponse, HttpResponseNotAllowed
 from django.http import JsonResponse, HttpResponseNotFound
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.forms.models import model_to_dict
 from .models import Article, User, Comment
@@ -51,6 +50,13 @@ def signout(request):
         return HttpResponseNotAllowed(['POST'])
 
 
+def login_required(function):
+    if User.is_authenticated:
+        return function
+    else:
+        return HttpResponse(status=405)
+
+
 @login_required
 def articleList(request):
     if request.method == 'GET':
@@ -66,6 +72,7 @@ def articleList(request):
         return HttpResponseNotAllowed(['GET', 'POST'])
 
 
+@login_required
 def articleDetail(request, article_id):
     article_id = int(article_id)
     if request.method == 'GET':
@@ -79,7 +86,7 @@ def articleDetail(request, article_id):
         content = json.loads(request.body.decode())['content']
         author_id = json.loads(request.body.decode())['author_id']
 
-        if author_id == User.objects.get(username=request.user.get_username()).id:
+        if author_id == 1:
             try:
                 article = Article.objects.get(id=article_id)
             except Article.DoesNotExist:
@@ -90,22 +97,22 @@ def articleDetail(request, article_id):
             article.save()
             return HttpResponse(status=200)
         else:
-            return HttpResponse(status=401) #Unauthorized
-
+            return HttpResponse(status=403) #Unauthorized
     elif request.method == 'DELETE':
         try:
             article = Article.objects.get(id=article_id)
         except Article.DoesNotExist:
             return HttpResponseNotFound()
-        if article.author_id == User.objects.get(username=request.user.get_username()).id:
+        # if article.author_id == User.objects.get(username=request.user.get_username()).id:
+        if article.author_id == 1:
             article.delete()
             return HttpResponse(status=200)
         else:
-            return HttpResponse(status=401) #Unauthorized
+            return HttpResponse(status=403) #Unauthorized
     else:
         return HttpResponseNotAllowed(['GET', 'PUT', 'DELETE'])
 
-
+@login_required
 def commentList(request, article_id):
     article_id = int(article_id)
     if request.method == 'GET':
@@ -122,6 +129,7 @@ def commentList(request, article_id):
         return HttpResponseNotAllowed(['GET', 'POST'])
 
 
+@login_required
 def commentDetail(request, comment_id):
     comment_id = int(comment_id)
     if request.method == 'GET':
@@ -131,31 +139,33 @@ def commentDetail(request, comment_id):
             return HttpResponseNotFound()
         return JsonResponse(model_to_dict(comment))
     elif request.method == 'PUT':
-        # article_id = json.loads(request.body.decode())['article_id']
+        try:
+            comment = Comment.objects.get(id=comment_id)
+        except Comment.DoesNotExist:
+            return HttpResponseNotFound()
         content = json.loads(request.body.decode())['content']
         author_id = json.loads(request.body.decode())['author_id']
-        if author_id == User.objects.get(username=request.user.get_username()).id:
-            try:
-                comment = Comment.objects.get(id=comment_id)
-            except Comment.DoesNotExist:
-                return HttpResponseNotFound()
-            # comment.article_id = article_id # article modifying not allowed
+        if author_id == 1:
             comment.content = content
-            # comment.author_id = author_id # author_id modifying not allowed
             comment.save()
             return HttpResponse(status=200)
         else:
-            return HttpResponse(status=401) # Unauthorized
+            return HttpResponse(status=403)
     elif request.method == 'DELETE':
-        author_id = json.loads(request.body.decode())['author_id']
-        if author_id == User.objects.get(username=request.user.get_username()).id:
-            try:
-                comment = Comment.objects.get(id=comment_id)
-            except Comment.DoesNotExist:
-                return HttpResponseNotFound()
+        try:
+            comment = Comment.objects.get(id=comment_id)
+        except Comment.DoesNotExist:
+            return HttpResponseNotFound()
+        author_id = comment.author_id
+        if author_id == 1:
             comment.delete()
             return HttpResponse(status=200)
         else:
-            return HttpResponse(status=401) # Unauthorized
+            return HttpResponse(status=403)
     else:
         return HttpResponseNotAllowed(['GET', 'PUT', 'DELETE'])
+
+
+
+
+

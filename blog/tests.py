@@ -1,6 +1,7 @@
 from django.test import TestCase, Client
 from django.http import HttpResponseNotAllowed
 from .models import User, Article, Comment
+from .views import login_required
 import json
 
 
@@ -109,7 +110,7 @@ class BlogTestCase(TestCase):
                                        {'author_id': 2, 'content': 'article3 modifed content',
                                         'id': 3, 'title': 'article3 modified'}),
                                    content_type='application/json')
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 403)
 
     def test_article_detail_put_not_found(self):
         response = self.client.put('/api/article/5',
@@ -133,7 +134,7 @@ class BlogTestCase(TestCase):
 
     def test_article_detail_delete_unauthorized(self):
         response = self.client.delete('/api/article/3')
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 403)
 
     def test_article_detail_delete_not_found(self):
         response = self.client.delete('/api/article/5')
@@ -178,7 +179,7 @@ class BlogTestCase(TestCase):
         response = self.client.put('/api/comment/1',
                                    json.dumps({'content': 'comment1 modified', 'author_id': 2, 'article_id': 1}),
                                    content_type='application/json')
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 403)
 
     def test_comment_detail_put_authorized(self):
         response = self.client.put('/api/comment/2',
@@ -194,7 +195,7 @@ class BlogTestCase(TestCase):
 
     def test_comment_detail_delete_unauthorized(self):
         response = self.client.delete('/api/comment/1')
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 403)
 
     def test_comment_detail_delete_authorized(self):
         response = self.client.delete('/api/comment/2')
@@ -257,6 +258,20 @@ class BlogTestCase(TestCase):
                                    json.dumps({'username': 'User1', 'password':'user1pwd'}),
                                               content_type='application/json')
         self.assertEqual(response.status_code, 405)
+
+    def test_login_required_logined(self):
+        def is_logined():
+            return True
+        self.assertEqual(login_required(is_logined()), True)
+
+    def test_login_required_not_logined(self):
+        def is_logined():
+            return True
+        User.is_authenticated = False
+        self.assertEqual(login_required(is_logined()).status_code, 405)
+
+
+
 
 
 
