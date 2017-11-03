@@ -10,6 +10,7 @@ class BlogTestCase(TestCase):
         u1 = User.objects.create_user(username='User1', password='user1pwd',)
         self.credentials = u1
         User.objects.get(id=1).is_active = True
+        # User.objects.get(id=1).is_authenticated = True
 
         User.objects.create_user(username='User2', password='user2pwd')
         User.objects.create_user(username='User3', password='user3pwd')
@@ -77,11 +78,11 @@ class BlogTestCase(TestCase):
         self.assertEqual(response.status_code, 201)
 
     def test_article_list_put(self):
-        response = self.client.put('/api/article', data=[])
+        response = self.client.put('/api/article', data={})
         self.assertEqual(response.status_code, 405)  # Not allowed
 
     def test_article_list_delete(self):
-        response = self.client.delete('/api/article', data=[])
+        response = self.client.delete('/api/article', data={})
         self.assertEqual(response.status_code, 405)  # Not allowed
 
     def test_article_list_get_not_found(self):
