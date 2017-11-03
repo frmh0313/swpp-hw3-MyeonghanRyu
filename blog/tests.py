@@ -7,7 +7,10 @@ import json
 class BlogTestCase(TestCase):
 
     def setUp(self):
-        User.objects.create_user(username='User1', password='user1pwd')
+        u1 = User.objects.create_user(username='User1', password='user1pwd',)
+        self.credentials = u1
+        User.objects.get(id=1).is_active = True
+
         User.objects.create_user(username='User2', password='user2pwd')
         User.objects.create_user(username='User3', password='user3pwd')
 
@@ -81,6 +84,10 @@ class BlogTestCase(TestCase):
         response = self.client.delete('/api/article', data=[])
         self.assertEqual(response.status_code, 405)
 
+    def test_article_list_get_not_found(self):
+        response = self.client.get('/api/article/5')
+        self.assertEqual(response.status_code, 404)
+
     def test_article_detail_get(self):
         response = self.client.get('/api/article/1')
         loaded_data = json.loads(response.content.decode())
@@ -88,17 +95,21 @@ class BlogTestCase(TestCase):
         self.assertEqual(loaded_data, data)
         self.assertEqual(response.status_code, 200)
 
-    def test_article_list_get_not_found(self):
-        response = self.client.get('/api/article/5')
-        self.assertEqual(response.status_code, 404)
-
-    def test_article_detail_put(self):
+    def test_article_detail_put_authorized(self):
         response = self.client.put('/api/article/1',
                                    json.dumps(
                                        {'author_id': 1, 'content': 'article1 modified content',
                                         'id': 1, 'title': 'article1 modified'}),
                                    content_type='application/json')
         self.assertEqual(response.status_code, 200)
+
+    def test_article_detail_put_unauthorized(self):
+        response = self.client.put('/api/article/3',
+                                   json.dumps(
+                                       {'author_id': 2, 'content': 'article3 modifed content',
+                                        'id': 3, 'title': 'article3 modified'}),
+                                   content_type='application/json')
+        self.assertEqual(response.status_code, 401)
 
     def test_article_detail_put_not_found(self):
         response = self.client.put('/api/article/5',
@@ -116,9 +127,13 @@ class BlogTestCase(TestCase):
                                     content_type='application/json')
         self.assertEqual(response.status_code, 405)
 
-    def test_article_detail_delete(self):
+    def test_article_detail_delete_authorized(self):
         response = self.client.delete('/api/article/1')
         self.assertEqual(response.status_code, 200)
+
+    def test_article_detail_delete_unauthorized(self):
+        response = self.client.delete('/api/article/3')
+        self.assertEqual(response.status_code, 401)
 
     def test_article_detail_delete_not_found(self):
         response = self.client.delete('/api/article/5')
@@ -159,9 +174,15 @@ class BlogTestCase(TestCase):
         response = self.client.get('/api/comment/5')
         self.assertEqual(response.status_code, 404)
 
-    def test_comment_detail_put(self):
+    def test_comment_detail_put_unauthorized(self):
         response = self.client.put('/api/comment/1',
-                                   json.dumps({'content': 'comment1 modified', 'author_id': 1, 'article_id': 1}),
+                                   json.dumps({'content': 'comment1 modified', 'author_id': 2, 'article_id': 1}),
+                                   content_type='application/json')
+        self.assertEqual(response.status_code, 401)
+
+    def test_comment_detail_put_authorized(self):
+        response = self.client.put('/api/comment/2',
+                                   json.dumps({'content': 'comment2 modified', 'author_id': 1, 'article_id': 1}),
                                    content_type='application/json')
         self.assertEqual(response.status_code, 200)
 
@@ -171,8 +192,12 @@ class BlogTestCase(TestCase):
                                    content_type='application/json')
         self.assertEqual(response.status_code, 404)
 
-    def test_comment_detail_delete(self):
+    def test_comment_detail_delete_unauthorized(self):
         response = self.client.delete('/api/comment/1')
+        self.assertEqual(response.status_code, 401)
+
+    def test_comment_detail_delete_authorized(self):
+        response = self.client.delete('/api/comment/2')
         self.assertEqual(response.status_code, 200)
 
     def test_comment_detail_delete_not_found(self):
